@@ -32,8 +32,12 @@ Co-authored by my friend, [Ariaa-H](https://github.com/Ariaa-H).
 | **Octal** | Standard Decoder | Octal values to text | ✅ |
 | **NCR Decimal** | Standard Decoder | HTML numeric entities (decimal) | ✅ |
 | **NCR Hexadecimal** | Standard Decoder | HTML numeric entities (hex) | ✅ |
-| **Base32** *(Planned)* | Standard Decoder | Removed temporarily. | ❌ |
-| **Base64** *(Planned)* | Standard Decoder | Removed temporarily. | ❌ |
+| **Base32**                | Standard Decoder        | RFC 4648 standard decoding           | ✅ |
+| **Base32hex**             | Standard Decoder        | RFC 4648 base32hex variant decoding  | ✅ |
+| **z-base-32**             | Standard Decoder        | z-base-32 decoding                   | ✅ |
+| **Crockford Base32**      | Standard Decoder        | Crockford variant decoding           | ✅ |
+| **Base64**                | Standard Decoder        | RFC 4648 Base64 decoding             | ✅ |
+| **Base64url**             | Standard Decoder        | URL-safe base64 decoding             | ✅ |
 
 **Status Key:** ✅ = Fully implemented | 🟡 = Experimental | ❌ = Not yet implemented
 
