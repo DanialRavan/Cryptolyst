@@ -3,6 +3,7 @@ import math
 import re
 from collections import Counter
 from itertools import permutations
+import base64
 
 # Separator Detection
 def _detect_and_remove_separators(text, valid_chars):
@@ -131,6 +132,192 @@ def decode_rot47(ciphertext):
         'config': 'ASCII (!-~)',
         'output': decrypted_text
     }]
+#Base 32
+def _base32_decode(ciphertext_str, alphabet_map):
+    processed_ciphertext = ""
+    for char in ciphertext_str.upper():
+        if char in alphabet_map:
+            processed_ciphertext += char
+        elif char == '=':
+            pass 
+
+    bits = ""
+    for char in processed_ciphertext:
+        if char in alphabet_map:
+            bits += bin(alphabet_map[char])[2:].zfill(5) 
+
+    byte_list = []
+    
+    for i in range(0, len(bits) - 7, 8):
+        byte_value = int(bits[i:i+8], 2)
+        byte_list.append(byte_value)
+
+    try:
+        
+        decoded_text = bytes(byte_list).decode('utf-8', errors='ignore')
+    except Exception:
+        
+        decoded_text = ""
+        for byte_val in byte_list:
+            try:
+                decoded_text += byte_val.to_bytes(1, 'big').decode('utf-8')
+            except UnicodeDecodeError:
+                
+                decoded_text += f"\\x{byte_val:02x}" 
+
+    return decoded_text
+
+
+# Standard Base32 Alphabet Map
+BASE32_ALPHABET_MAP = {
+    'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7,
+    'I': 8, 'J': 9, 'K': 10, 'L': 11, 'M': 12, 'N': 13, 'O': 14, 'P': 15,
+    'Q': 16, 'R': 17, 'S': 18, 'T': 19, 'U': 20, 'V': 21, 'W': 22, 'X': 23,
+    'Y': 24, 'Z': 25, '2': 26, '3': 27, '4': 28, '5': 29, '6': 30, '7': 31
+}
+
+def decode_base32(ciphertext):
+    decoded = _base32_decode(ciphertext, BASE32_ALPHABET_MAP)
+    return [{
+        "name": "Base32",
+        "config": "Standard Base32",
+        "output": decoded if decoded else ciphertext 
+    }]
+
+# Base32Hex Alphabet Map
+BASE32HEX_ALPHABET_MAP = {
+    '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
+    '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15,
+    'G': 16, 'H': 17, 'I': 18, 'J': 19, 'K': 20, 'L': 21, 'M': 22, 'N': 23,
+    'O': 24, 'P': 25, 'Q': 26, 'R': 27, 'S': 28, 'T': 29, 'U': 30, 'V': 31
+}
+
+def decode_base32hex(ciphertext):
+    
+    decoded = _base32_decode(ciphertext, BASE32HEX_ALPHABET_MAP)
+    return [{
+        "name": "Base32Hex",
+        "config": "Base32Hex",
+        "output": decoded if decoded else ciphertext
+    }]
+
+# Z-Base32 Alphabet Map
+ZBASE32_ALPHABET_MAP = {
+    'y': 0, 'b': 1, 'n': 2, 'd': 3, 'r': 4, 'f': 5, 'g': 6, '8': 7,
+    'e': 8, 'j': 9, 'k': 10, 'm': 11, 'c': 12, 'p': 13, 'q': 14, 'x': 15,
+    'o': 16, 't': 17, '1': 18, 'u': 19, 'w': 20, 'i': 21, 's': 22, 'z': 23,
+    'a': 24, '3': 25, '4': 26, '5': 27, 'h': 28, '7': 29, '6': 30, '9': 31
+}
+
+def decode_zbase32(ciphertext):
+    ZBASE32_ALPHABET = 'ybndrfg8ejkmcpqxot1uwisza345h769'
+    STANDARD_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+    try:
+        trans = str.maketrans(ZBASE32_ALPHABET, STANDARD_ALPHABET)
+        translated = ciphertext.lower().translate(trans)
+        padded_translated = translated + '=' * (-len(translated) % 8)
+        decoded = base64.b32decode(padded_translated.encode('utf-8')).decode('utf-8', errors='ignore')
+        return [{
+            "name": "z-base-32",
+            "config": " ",
+            "output": decoded
+        }]
+    except Exception:
+        return []
+# Crockford Base32 Alphabet Map
+CROCKFORD_ALPHABET_MAP = {
+    '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
+    '8': 8, '9': 9, 'A': 10, 'B': 11, 'C': 12, 'D': 13, 'E': 14, 'F': 15,
+    'G': 16, 'H': 17, 'J': 18, 'K': 19, 'M': 20, 'N': 21, 'P': 22, 'Q': 23,
+    'R': 24, 'S': 25, 'T': 26, 'V': 27, 'W': 28, 'X': 29, 'Y': 30, 'Z': 31
+    
+    , 'I': 8, 'L': 11, 'O': 14, 'U': 20
+}
+
+def decode_crockford_base32(ciphertext):
+    
+    cleaned_ciphertext = ciphertext.replace('-', '') 
+    decoded = _base32_decode(cleaned_ciphertext, CROCKFORD_ALPHABET_MAP)
+    return [{
+        "name": "Crockford Base32",
+        "config": "Crockford Base32",
+        "output": decoded if decoded else ciphertext
+    }]
+
+#Base64 
+
+def _base64_decode(ciphertext_str, alphabet_map, padding_char='='):
+    
+    no_whitespace_ciphertext = "".join(char for char in ciphertext_str if not char.isspace())
+
+    processed_ciphertext = ""
+   
+    for char in no_whitespace_ciphertext:
+        if char in alphabet_map:
+            processed_ciphertext += char
+        elif char == padding_char:
+            pass 
+
+    bits = ""
+    for char in processed_ciphertext:
+        if char in alphabet_map:
+            bits += bin(alphabet_map[char])[2:].zfill(6)
+
+    byte_list = []
+    for i in range(0, len(bits) - 7, 8):
+        byte_value = int(bits[i:i+8], 2)
+        byte_list.append(byte_value)
+
+    decoded_text = ""
+    for byte_val in byte_list:
+        try:
+            decoded_text += byte_val.to_bytes(1, 'big').decode('utf-8')
+        except UnicodeDecodeError:
+            decoded_text += f"\\x{byte_val:02x}"
+
+    return decoded_text
+
+# Base64 (RFC 3548, RFC 4648) Alphabet Map 
+BASE64_STANDARD_ALPHABET_MAP = {
+    'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7,
+    'I': 8, 'J': 9, 'K': 10, 'L': 11, 'M': 12, 'N': 13, 'O': 14, 'P': 15,
+    'Q': 16, 'R': 17, 'S': 18, 'T': 19, 'U': 20, 'V': 21, 'W': 22, 'X': 23,
+    'Y': 24, 'Z': 25, 'a': 26, 'b': 27, 'c': 28, 'd': 29, 'e': 30, 'f': 31,
+    'g': 32, 'h': 33, 'i': 34, 'j': 35, 'k': 36, 'l': 37, 'm': 38, 'n': 39,
+    'o': 40, 'p': 41, 'q': 42, 'r': 43, 's': 44, 't': 45, 'u': 46, 'v': 47,
+    'w': 48, 'x': 49, 'y': 50, 'z': 51, '0': 52, '1': 53, '2': 54, '3': 55,
+    '4': 56, '5': 57, '6': 58, '7': 59, '8': 60, '9': 61, '+': 62, '/': 63
+}
+
+def decode_base64(ciphertext):
+    decoded = _base64_decode(ciphertext, BASE64_STANDARD_ALPHABET_MAP)
+    return [{
+        "name": "Base64 (Standard)",
+        "config": "RFC 4648",
+        "output": decoded if decoded else ciphertext
+    }]
+
+# Base64url (RFC 4648 §5) Alphabet Map 
+BASE64URL_ALPHABET_MAP = {
+    'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7,
+    'I': 8, 'J': 9, 'K': 10, 'L': 11, 'M': 12, 'N': 13, 'O': 14, 'P': 15,
+    'Q': 16, 'R': 17, 'S': 18, 'T': 19, 'U': 20, 'V': 21, 'W': 22, 'X': 23,
+    'Y': 24, 'Z': 25, 'a': 26, 'b': 27, 'c': 28, 'd': 29, 'e': 30, 'f': 31,
+    'g': 32, 'h': 33, 'i': 34, 'j': 35, 'k': 36, 'l': 37, 'm': 38, 'n': 39,
+    'o': 40, 'p': 41, 'q': 42, 'r': 43, 's': 44, 't': 45, 'u': 46, 'v': 47,
+    'w': 48, 'x': 49, 'y': 50, 'z': 51, '0': 52, '1': 53, '2': 54, '3': 55,
+    '4': 56, '5': 57, '6': 58, '7': 59, '8': 60, '9': 61, '-': 62, '_': 63
+}
+
+def decode_base64url(ciphertext):
+    decoded = _base64_decode(ciphertext, BASE64URL_ALPHABET_MAP, padding_char='=')
+    return [{
+        "name": "Base64url",
+        "config": "RFC 4648 §5",
+        "output": decoded if decoded else ciphertext
+    }]
+
+
 
 # ASCII85 / Base85
 def decode_ascii85(ciphertext):
@@ -358,6 +545,12 @@ def run_decoders(ciphertext):
         decode_rot13,
         decode_rot18,
         decode_rot47,
+        decode_base32,
+        decode_base32hex,
+        decode_zbase32,
+        decode_crockford_base32,
+        decode_base64,
+        decode_base64url,
         decode_ascii85,
         decode_z85,
         decode_morse_code,
@@ -376,5 +569,6 @@ def run_decoders(ciphertext):
             all_potential_results.extend(decoder_func(ciphertext))
         except Exception:
             continue
+
 
     return all_potential_results
